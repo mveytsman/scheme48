@@ -37,14 +37,16 @@ data LispVal = Atom String
              | Number Integer
              | String String
              | Bool Bool
+             | Char Char
 
 showLispVal :: LispVal -> String
 showLispVal input = case input of
-  Atom atom -> atom
-  List list ->  map showLispVal list !! 0
-  Number num -> show num
-  String str -> "\"" ++ str ++ "\""
-  Bool bool -> show bool
+  Atom atom -> "Atom: " ++ atom
+  List list ->  "List: " ++ map showLispVal list !! 0
+  Number num -> "Num: " ++ show num
+  String str -> "String: " ++ "\"" ++ str ++ "\""
+  Bool bool -> "Bool: " ++ show bool
+  Char chr -> "Char: " ++ show chr
 
   
 
@@ -53,10 +55,8 @@ parseString :: Parser LispVal
 parseString = do
                 char '"'
                 x <- many fancyString
-                     
-                --char '"'
+                char '"'
                 return $ String x
-
 
 parseAtom :: Parser LispVal
 parseAtom = do 
@@ -70,7 +70,9 @@ parseAtom = do
                          '#':'d':dec -> Number (read dec)
                          '#':'x':hex -> Number $ fst (readHex hex !! 0)
                          '#':'o':oct -> Number $ fst (readOct oct !! 0)
-                         '#':'b':bin -> Number $ readBin bin 
+                         '#':'b':bin -> Number $ readBin bin
+                         -- We need to change this to #\, the problem is that \ isn't in symbol so we never get to this parse. Refactor
+                         '#':'!':chr -> Char $ chr !! 0
                          _    -> Atom atom
 
 parseNumber :: Parser LispVal
@@ -84,8 +86,8 @@ parseNumber = do
                 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
-         <|> parseString
-         <|> parseNumber
+          -- <|> parseString
+          -- <|> parseNumber
 
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
@@ -97,5 +99,5 @@ readExpr input = case parse parseExpr "lisp" input of
 main :: IO ()
 main = do
   args <- getArgs
-  putStrLn (readExpr (args !! 0))
+  putStrLn (readExpr "#\\a")--(args !! 0))
         
