@@ -10,8 +10,21 @@ symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 spaces :: Parser ()
 spaces = skipMany1 space
 
-quotedString :: Parser Char
-quotedString =  ((char '\\') >> (char '"')) <|> (noneOf "\"")
+
+
+newline2 :: Parser Char
+newline2 = (char '\\') >> (char 'n')
+
+-- TODO: make this a datatype or something easily extensible
+escapeParser :: Parser Char
+escapeParser = (char '\\') >> ((char '"')
+                               <|> (char 'n' >> return '\n')
+                               <|> (char 'r' >> return '\r')
+                               <|> (char 't' >> return '\t')
+                               <|> (char '\\'))
+
+fancyString :: Parser Char
+fancyString =   choice [escapeParser, (noneOf "\"")]
 
 data LispVal = Atom String
              | List [LispVal]
@@ -34,7 +47,7 @@ showLispVal input = case input of
 parseString :: Parser LispVal
 parseString = do
                 char '"'
-                x <- many quotedString
+                x <- many fancyString
                      
                 --char '"'
                 return $ String x
