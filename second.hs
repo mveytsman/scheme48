@@ -2,6 +2,7 @@ module Main where
 import System.Environment
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
+import Numeric (readHex, readOct)
 
 
 symbol :: Parser Char
@@ -10,6 +11,10 @@ symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 spaces :: Parser ()
 spaces = skipMany1 space
 
+
+readBin :: String -> Integer
+readBin = foldl binRead 0
+        where binRead acc c = 2 * acc + (read [c]) -- ugh 
 
 
 newline2 :: Parser Char
@@ -61,10 +66,21 @@ parseAtom = do
               return $ case atom of 
                          "#t" -> Bool True
                          "#f" -> Bool False
+                         -- this is gross! NOTE: ensure that dec,hex,oct,bin are restricted to the right charset
+                         '#':'d':dec -> Number (read dec)
+                         '#':'x':hex -> Number $ fst (readHex hex !! 0)
+                         '#':'o':oct -> Number $ fst (readOct oct !! 0)
+                         '#':'b':bin -> Number $ readBin bin 
                          _    -> Atom atom
 
 parseNumber :: Parser LispVal
-parseNumber = many1 digit >>= (return . Number . read)
+parseNumber = do
+  base <- ((char '#') >> (char 'd')) <|> digit
+  rest <- many digit
+  --return $ case base of
+  --  'd' -> Number (read rest)
+  --  _ -> Number (read $ base:rest)
+  many1 digit >>= (return . Number . read)
                 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
