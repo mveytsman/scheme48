@@ -42,18 +42,17 @@ data LispVal = Atom String
              | Char Char
              | Float Double
 
-showLispVal :: LispVal -> String
-showLispVal input = case input of
-  Atom atom -> "Atom: " ++ atom
-  List list ->  "List: (" ++ foldl (\x y -> x ++ showLispVal y ++ " ") "" list ++ ")"
-  DottedList head tail -> "Dotted List: (" ++ foldl (\x y -> x ++ showLispVal y ++ " ") "" head ++ ". " ++ showLispVal tail ++ ")"
-  Number num -> "Num: " ++ show num
-  String str -> "String: " ++ "\"" ++ str ++ "\""
-  Bool bool -> "Bool: " ++ show bool
-  Char chr -> "Char: " ++ show chr
-  Float flt -> "Float: " ++ show flt
+showVal :: LispVal -> String
+showVal (String contents) = "\"" ++ contents ++ "\""
+showVal (Atom name) = name
+showVal (Number contents) = show contents
+showVal (Bool True) = "#t"
+showVal (Bool False) = "#f"
+showVal (List contents) = "(" ++ unwordsList contents ++ ")"
+showVal (DottedList head tail) = "(" ++ unwordsList head ++ " . " ++ showVal tail ++ ")"
 
-  
+unwordsList :: [LispVal] -> String
+unwordsList = unwords . map showVal
 
 parseString :: Parser LispVal
 parseString = do
@@ -154,7 +153,7 @@ parseQuoted = do
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
   Left err -> "No match " ++ show err
-  Right val -> "Found value: " ++ (showLispVal val)  
+  Right val -> "Found value: " ++ (showVal val)  
 
 
  
