@@ -6,7 +6,7 @@ import Numeric (readHex, readOct)
 
 
 symbol :: Parser Char
-symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
+symbol = oneOf "!#$%&|*+-/:<=>?@^_~\\"
 
 spaces :: Parser ()
 spaces = skipMany1 space
@@ -23,10 +23,10 @@ newline2 = (char '\\') >> (char 'n')
 -- TODO: make this a datatype or something easily extensible
 escapeParser :: Parser Char
 escapeParser = (char '\\') >> ((char '"')
-                               <|> (char 'n' >> return '\n')
-                               <|> (char 'r' >> return '\r')
-                               <|> (char 't' >> return '\t')
-                               <|> (char '\\'))
+               <|> (char 'n' >> return '\n')
+               <|> (char 'r' >> return '\r')
+               <|> (char 't' >> return '\t')
+               <|> (char '\\'))
 
 fancyString :: Parser Char
 fancyString =   choice [escapeParser, (noneOf "\"")]
@@ -82,10 +82,17 @@ parseNumberLiteral = do
     'o' -> parseOct
     'b' -> parseBin
 
+parseCharLiteral :: Parser LispVal
+parseCharLiteral = do
+  char '\\'
+  x <- anyChar
+  notFollowedBy (letter <|> digit <|> symbol)
+  return $ Char x
+  
 parseSpecial :: Parser LispVal
 parseSpecial = do
   char '#'
-  parseBool <|> parseNumberLiteral -- <|> parseCharLiteral
+  parseBool <|> parseNumberLiteral <|> parseCharLiteral
 
 
 parseDec :: Parser LispVal
