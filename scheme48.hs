@@ -5,6 +5,8 @@ import Control.Monad
 import Numeric (readHex, readOct, readFloat)
 
 
+-- PARSING --
+
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~\\"
 
@@ -33,6 +35,7 @@ escapeParser = (char '\\') >> ((char '"')
 fancyString :: Parser Char
 fancyString =   choice [escapeParser, (noneOf "\"")]
 
+instance Show LispVal where show = showVal
 data LispVal = Atom String
              | List [LispVal]
              | DottedList [LispVal] LispVal
@@ -150,15 +153,24 @@ parseQuoted = do
     x <- parseExpr
     return $ List [Atom "quote", x]
 
-readExpr :: String -> String
+readExpr :: String -> LispVal
 readExpr input = case parse parseExpr "lisp" input of
-  Left err -> "No match " ++ show err
-  Right val -> "Found value: " ++ (showVal val)  
+  Left err -> String $ "No match " ++ show err
+  Right val -> val  
+
+
+-- EVALUATING --
+
+eval :: LispVal -> LispVal
+eval val@(String _) = val
+eval val@(Number _) = val
+eval val@(Bool _) = val
+eval (List [Atom "quote", val]) = val
+
+
 
 
  
 main :: IO ()
-main = do
-  args <- getArgs
-  putStrLn $ readExpr (args !! 0)
+main =  getArgs >>= print . eval . readExpr . head
         
