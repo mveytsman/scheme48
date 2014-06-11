@@ -14,8 +14,10 @@ spaces = skipMany1 space
 
 readBin :: String -> Integer
 readBin = foldl binRead 0
-        where binRead acc c = 2 * acc + (read [c]) -- ugh 
+        where binRead acc c = 2 * acc + (read [c]) -- ugh
 
+unwrappingReader :: ReadS a -> (String -> a) -- we know more about the type of b than this, try with Num typeclass (Num a =>)
+unwrappingReader reader = fst . (!! 0) . reader
 
 newline2 :: Parser Char
 newline2 = (char '\\') >> (char 'n')
@@ -100,7 +102,7 @@ parseDec :: Parser LispVal
 parseDec = many1 digit >>= (return . Number . read)
 
 parseHex :: Parser LispVal
-parseHex = liftM (Number . fst . (!! 0) . readHex) $ many1 (digit <|> oneOf "abcdefABCDEF")
+parseHex = liftM (Number . (unwrappingReader readHex)) $ many1 (digit <|> oneOf "abcdefABCDEF")
 
 parseOct :: Parser LispVal
 parseOct = liftM (Number . fst . (!! 0) . readOct) $ many1 (oneOf "01234567")
