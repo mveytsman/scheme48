@@ -2,7 +2,7 @@ module Main where
 import System.Environment
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
-import Numeric (readHex, readOct)
+import Numeric (readHex, readOct, readFloat)
 
 
 symbol :: Parser Char
@@ -38,6 +38,7 @@ data LispVal = Atom String
              | String String
              | Bool Bool
              | Char Char
+             | Float Double
 
 showLispVal :: LispVal -> String
 showLispVal input = case input of
@@ -47,9 +48,9 @@ showLispVal input = case input of
   String str -> "String: " ++ "\"" ++ str ++ "\""
   Bool bool -> "Bool: " ++ show bool
   Char chr -> "Char: " ++ show chr
+  Float flt -> "Float: " ++ show flt
 
   
-
 
 parseString :: Parser LispVal
 parseString = do
@@ -108,11 +109,20 @@ parseOct = liftM (Number . fst . (!! 0) . readOct) $ many1 (oneOf "01234567")
 parseBin :: Parser LispVal
 parseBin = liftM (Number . readBin) $ many1 (oneOf "01")
 
-           
+parseFloat :: Parser LispVal
+parseFloat = do
+  integral <- many digit
+  char '.'
+  integrand <- many1 digit
+  let floatString = integral ++ "." ++ integrand
+  let float = fst $ (readFloat floatString) !! 0
+  return $ Float float
+
 parseExpr :: Parser LispVal
 parseExpr = (try parseSpecial)
           <|> parseAtom
           <|> parseString
+          <|> parseFloat
           <|> parseDec
 
 readExpr :: String -> String
