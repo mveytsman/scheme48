@@ -45,7 +45,8 @@ data LispVal = Atom String
 showLispVal :: LispVal -> String
 showLispVal input = case input of
   Atom atom -> "Atom: " ++ atom
-  List list ->  "List: " ++ map showLispVal list !! 0
+  List list ->  "List: (" ++ foldl (\x y -> x ++ showLispVal y ++ " ") "" list ++ ")"
+  DottedList head tail -> "Dotted List: (" ++ foldl (\x y -> x ++ showLispVal y ++ " ") "" head ++ ". " ++ showLispVal tail ++ ")"
   Number num -> "Num: " ++ show num
   String str -> "String: " ++ "\"" ++ str ++ "\""
   Bool bool -> "Bool: " ++ show bool
@@ -98,6 +99,8 @@ parseSpecial = do
   parseBool <|> parseNumberLiteral <|> parseCharLiteral
 
 
+-- TODO: Exercise 7, chap 2: full numeric tower (complex, rational, etc)
+
 parseDec :: Parser LispVal
 parseDec = many1 digit >>= (return . Number . read)
 
@@ -124,8 +127,29 @@ parseExpr :: Parser LispVal
 parseExpr = (try parseSpecial)
           <|> parseAtom
           <|> parseString
-          <|> parseFloat
+          <|> try parseFloat
           <|> parseDec
+          <|> parseQuoted
+          <|> do
+                char '('
+                x <- try parseList <|> parseDottedList
+                char ')'
+                return x
+
+parseList :: Parser LispVal
+parseList = liftM List $ sepBy parseExpr spaces
+
+parseDottedList :: Parser LispVal
+parseDottedList = do
+    head <- endBy parseExpr spaces
+    tail <- char '.' >> spaces >> parseExpr
+    return $ DottedList head tail
+
+parseQuoted :: Parser LispVal
+parseQuoted = do
+    char '\''
+    x <- parseExpr
+    return $ List [Atom "quote", x]
 
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
