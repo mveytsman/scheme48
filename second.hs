@@ -63,31 +63,50 @@ parseAtom = do
               first <- letter <|> symbol
               rest <- many (letter <|> digit <|> symbol)
               let atom = first:rest
-              return $ case atom of 
-                         "#t" -> Bool True
-                         "#f" -> Bool False
-                         -- this is gross! NOTE: ensure that dec,hex,oct,bin are restricted to the right charset
-                         '#':'d':dec -> Number (read dec)
-                         '#':'x':hex -> Number $ fst (readHex hex !! 0)
-                         '#':'o':oct -> Number $ fst (readOct oct !! 0)
-                         '#':'b':bin -> Number $ readBin bin
-                         -- We need to change this to #\, the problem is that \ isn't in symbol so we never get to this parse. Refactor
-                         '#':'!':chr -> Char $ chr !! 0
-                         _    -> Atom atom
+              return $ Atom atom
 
-parseNumber :: Parser LispVal
-parseNumber = do
-  base <- ((char '#') >> (char 'd')) <|> digit
-  rest <- many digit
-  --return $ case base of
-  --  'd' -> Number (read rest)
-  --  _ -> Number (read $ base:rest)
-  many1 digit >>= (return . Number . read)
-                
+parseBool :: Parser LispVal
+parseBool = do
+  c <- oneOf "tf"
+  notFollowedBy (letter <|> digit <|> symbol)
+  return $ case c of
+    't' -> Bool True
+    'f' -> Bool False
+
+parseNumberLiteral :: Parser LispVal
+parseNumberLiteral = do
+  base <- oneOf "dxob"
+  case base of
+    'd' -> parseDec
+    'x' -> parseHex
+    'o' -> parseOct
+    'b' -> parseBin
+
+parseSpecial :: Parser LispVal
+parseSpecial = do
+  char '#'
+  parseBool <|> parseNumberLiteral -- <|> parseCharLiteral
+
+
+parseDec :: Parser LispVal
+parseDec = many1 digit >>= (return . Number . read)
+
+parseHex :: Parser LispVal
+parseHex = liftM (Number . fst . (!! 0) . readHex) $ many1 (digit <|> oneOf "abcdefABCDEF")
+
+parseOct :: Parser LispVal
+parseOct = liftM (Number . fst . (!! 0) . readOct) $ many1 (oneOf "01234567")
+
+
+parseBin :: Parser LispVal
+parseBin = liftM (Number . readBin) $ many1 (oneOf "01")
+
+           
 parseExpr :: Parser LispVal
-parseExpr = parseAtom
-          -- <|> parseString
-          -- <|> parseNumber
+parseExpr = (try parseSpecial)
+          <|> parseAtom
+          <|> parseString
+          <|> parseDec
 
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
@@ -99,5 +118,5 @@ readExpr input = case parse parseExpr "lisp" input of
 main :: IO ()
 main = do
   args <- getArgs
-  putStrLn (readExpr "#\\a")--(args !! 0))
+  putStrLn $ readExpr (args !! 0)
         
