@@ -190,11 +190,53 @@ primitives = [("+", numericBinop (+)),
               ("/", numericBinop div),
               ("mod", numericBinop mod),
               ("quotient", numericBinop quot),
-              ("remainder", numericBinop rem)]
+              ("remainder", numericBinop rem),
+             
+              ("symbol?", isSymbol),
+              ("list?",   isList),
+              ("dotted-list?", isDottedList),
+              ("number?", isNumber),
+              ("string?", isString),
+              ("bool?", isBool),
+              ("char?", isChar),
+              ("float?", isFloat)]
 
 
 
+isSymbol :: [LispVal] -> LispVal
+isSymbol [(Atom _)] = Bool True
+isSymbol _ = Bool False
+
+isList :: [LispVal] -> LispVal
+isList [(List _)] = Bool True
+isList _ = Bool False
+
+isDottedList :: [LispVal] -> LispVal
+isDottedList [(DottedList _ _)] = Bool True
+isDottedList _ = Bool False
+
+isNumber :: [LispVal] -> LispVal
+isNumber [(Number _)] = Bool True
+isNumber _ = Bool False
+
+isString :: [LispVal] -> LispVal
+isString [(String _)] = Bool True
+isString _ = Bool False
+
+isBool :: [LispVal] -> LispVal
+isBool [(Bool _)] = Bool True
+isBool _ = Bool False
+             
+isChar :: [LispVal] -> LispVal
+isChar [(Char _)] = Bool True
+isChar _ = Bool False
+
+isFloat :: [LispVal] -> LispVal
+isFloat [(Float _)] = Bool True
+isFloat _ = Bool False         
  
+-- Main interpreter
+
 main :: IO ()
 main =  getArgs >>= print . eval . readExpr . head
         
