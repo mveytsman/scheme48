@@ -46,6 +46,7 @@ data LispVal = Atom String
              | Char Char
              | Float Double
 
+
 showVal :: LispVal -> String
 showVal (String contents) = "\"" ++ contents ++ "\""
 showVal (Atom name) = name
@@ -218,24 +219,6 @@ instance LispNum Integer where
 instance LispNum Double where
     makeLispVal d = Float d
 
-type Foo = Either Integer Double
-                 
-                        
-numericBinop :: (Integer -> Integer -> Integer)-> [LispVal] -> ThrowsError LispVal
-numericBinop op            [] = throwError $ NumArgs 2 []
-numericBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal
-numericBinop op params        = mapM unpackNum params >>=  return . makeLispVal . foldl1 op
-
-unpackNum :: LispVal -> ThrowsError Integer
-unpackNum (Number n) = return n
---unpackNum (Float n) = return n
-unpackNum (String n) = let parsed = reads n in 
-                           if null parsed 
-                             then throwError $ TypeMismatch "number" $ String n
-                             else return $ fst $ parsed !! 0
-unpackNum (List [n]) = unpackNum n
-unpackNum notNum     = throwError $ TypeMismatch "number" notNum
-
 primitives :: [(String, [LispVal] -> ThrowsError LispVal)]
 primitives = [("+", numericBinop (+)),
               ("-", numericBinop (-)),
@@ -256,9 +239,29 @@ primitives = [("+", numericBinop (+)),
 
               ("symbol->string", (return . String . show . head)),
               ("string->symbol", (return . Atom . show . head))]
+                        
+numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> ThrowsError LispVal
+numericBinop op            [] = throwError $ NumArgs 2 []
+numericBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal
+numericBinop op params        = mapM unpackNum params >>=  return . Number . foldl1 op
 
 
+numericBinop op [(Float f) (Float f) ...]
 
+numericBinop op (Float f) (Float f') = Float (op f f')
+
+                                       
+unpackNum :: LispVal -> ThrowsError Integer
+unpackNum (Number n) = return n
+--unpackNum (Float n) = return n
+unpackNum (String n) = let parsed = reads n in 
+                           if null parsed 
+                             then throwError $ TypeMismatch "number" $ String n
+                             else return $ fst $ parsed !! 0
+unpackNum (List [n]) = unpackNum n
+unpackNum notNum     = throwError $ TypeMismatch "number" notNum
+
+                       
 isSymbol :: [LispVal] -> ThrowsError LispVal
 isSymbol [(Atom _)] = return $ Bool True
 isSymbol [_] = return $ Bool False
